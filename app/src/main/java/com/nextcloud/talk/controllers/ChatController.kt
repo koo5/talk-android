@@ -196,6 +196,7 @@ import retrofit2.Response
 import java.io.File
 import java.io.IOException
 import java.net.HttpURLConnection
+import java.security.MessageDigest
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Objects
@@ -2021,6 +2022,46 @@ class ChatController(args: Bundle) :
     }
 
     private fun sendMessage(message: CharSequence, replyTo: Int?, sendWithoutNotification: Boolean) {
+        val messObj = ChatMessage()
+        messObj.setMessage(message.toString())
+        messObj.setActiveUser(conversationUser)
+        val tsLong = System.currentTimeMillis() / 1000
+        messObj.setTimestamp(tsLong)
+        messObj.setJsonMessageId(0 - tsLong.toInt())
+
+
+        messObj.setReadStatus(ReadStatus.SENDING)
+
+        if (conversationUser!!.userId != "?") {
+            // Logged in user
+            messObj.setActorType("users")
+            messObj.setActorId(conversationUser.userId)
+            messObj.setActorDisplayName(conversationUser.username)
+        } else if (currentConversation!!.actorType != null) {
+            // API v3 or later
+            messObj.setActorType(currentConversation!!.actorType)
+            messObj.setActorId(currentConversation!!.actorId)
+            messObj.setActorDisplayName("")
+        } else {
+            // API v1 or v2 as a guest
+            messObj.setActorType("guests")
+
+            val messageDigest: MessageDigest = MessageDigest.getInstance("SHA-1")
+            val digest: ByteArray = messageDigest.digest(currentConversation!!.sessionId.toByteArray())
+            val sha1: StringBuilder = StringBuilder()
+            val i = digest.iterator()
+            while (i.hasNext()) {
+                sha1.append(String.format("%02X", i.next()))
+            }
+
+            messObj.setActorId(sha1.toString())
+            messObj.setActorDisplayName("")
+        }
+
+        adapter!!.addToStart(
+            messObj,
+            true
+        )
 
         if (conversationUser != null) {
             val apiVersion = ApiUtils.getChatApiVersion(conversationUser, intArrayOf(1))
@@ -2042,6 +2083,8 @@ class ChatController(args: Bundle) :
 
                     @Suppress("Detekt.TooGenericExceptionCaught")
                     override fun onNext(genericOverall: GenericOverall) {
+                        adapter!!.delete(messObj)
+
                         myFirstMessage = message
 
                         try {
@@ -2058,6 +2101,11 @@ class ChatController(args: Bundle) :
                     }
 
                     override fun onError(e: Throwable) {
+                        Log.e(TAG, "An error occured while sending the chat message: " + e.message)
+
+                        messObj.setReadStatus(ReadStatus.FAILED)
+                        adapter!!.updateAndMoveToStart(messObj)
+
                         if (e is HttpException) {
                             val code = e.code()
                             if (Integer.toString(code).startsWith("2")) {
@@ -2408,10 +2456,12 @@ class ChatController(args: Bundle) :
                     if (message.item is ChatMessage) {
                         val chatMessage = message.item as ChatMessage
 
-                        if (chatMessage.jsonMessageId <= it) {
-                            chatMessage.readStatus = ReadStatus.READ
-                        } else {
-                            chatMessage.readStatus = ReadStatus.SENT
+                        if (chatMessage.jsonMessageId > 0) {
+                            if (chatMessage.jsonMessageId <= it) {
+                                chatMessage.readStatus = ReadStatus.READ
+                            } else {
+                                chatMessage.readStatus = ReadStatus.SENT
+                            }
                         }
                     }
                 }
@@ -2750,7 +2800,12 @@ class ChatController(args: Bundle) :
 
     fun replyPrivately(message: IMessage?) {
         val apiVersion =
-            ApiUtils.getConversationApiVersion(conversationUser, intArrayOf(ApiUtils.APIv4, 1))
+            ApiUtils.getConversationApiVersion(
+                            conversationUser, intArrayOf(
+                                ApiUtils.APIv4,
+                                1
+                            )
+                        )
         val retrofitBucket = ApiUtils.getRetrofitBucketForCreateRoom(
             apiVersion,
             conversationUser?.baseUrl,
@@ -2802,21 +2857,20 @@ class ChatController(args: Bundle) :
                                 )
                             }
 
-                            override fun onError(e: Throwable) {
-                                Log.e(TAG, e.message, e)
-                            }
+                                            override fun onError(e: Throwable) {
+                                                Log.e(TAG, e.message, e)
+                                            }
 
-                            override fun onComplete() {
-                                // unused atm
+                                            override fun onComplete() {// unused atm
                             }
                         })
                 }
 
-                override fun onError(e: Throwable) {
-                    Log.e(TAG, e.message, e)
-                }
+                                override fun onError(e: Throwable) {
+                                    Log.e(TAG, e.message, e)
+                                }
 
-                override fun onComplete() {
+                                override fun onComplete() {
                     // unused atm
                 }
             })
