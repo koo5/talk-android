@@ -2023,39 +2023,38 @@ class ChatController(args: Bundle) :
 
     private fun sendMessage(message: CharSequence, replyTo: Int?, sendWithoutNotification: Boolean) {
         val messObj = ChatMessage()
-        messObj.setMessage(message.toString())
-        messObj.setActiveUser(conversationUser)
+        messObj.message = message.toString()
+        messObj.activeUser = conversationUser
         val tsLong = System.currentTimeMillis() / 1000
-        messObj.setTimestamp(tsLong)
-        messObj.setJsonMessageId(0 - tsLong.toInt())
+        messObj.timestamp = tsLong
+        messObj.jsonMessageId = 0 - tsLong.toInt()
 
-
-        messObj.setReadStatus(ReadStatus.SENDING)
+        messObj.readStatus = ReadStatus.SENDING
 
         if (conversationUser!!.userId != "?") {
             // Logged in user
-            messObj.setActorType("users")
-            messObj.setActorId(conversationUser.userId)
-            messObj.setActorDisplayName(conversationUser.username)
+            messObj.actorType = "users"
+            messObj.actorId = conversationUser.userId
+            messObj.actorDisplayName = conversationUser.username
         } else if (currentConversation!!.actorType != null) {
             // API v3 or later
-            messObj.setActorType(currentConversation!!.actorType)
-            messObj.setActorId(currentConversation!!.actorId)
-            messObj.setActorDisplayName("")
+            messObj.actorType = currentConversation!!.actorType
+            messObj.actorId = currentConversation!!.actorId
+            messObj.actorDisplayName = ""
         } else {
             // API v1 or v2 as a guest
-            messObj.setActorType("guests")
+            messObj.actorType = "guests"
 
             val messageDigest: MessageDigest = MessageDigest.getInstance("SHA-1")
-            val digest: ByteArray = messageDigest.digest(currentConversation!!.sessionId.toByteArray())
+            val digest: ByteArray = messageDigest.digest(currentConversation!!.sessionId!!.toByteArray())
             val sha1: StringBuilder = StringBuilder()
             val i = digest.iterator()
             while (i.hasNext()) {
                 sha1.append(String.format("%02X", i.next()))
             }
 
-            messObj.setActorId(sha1.toString())
-            messObj.setActorDisplayName("")
+            messObj.actorId = sha1.toString()
+            messObj.actorDisplayName = ""
         }
 
         adapter!!.addToStart(
@@ -2103,7 +2102,7 @@ class ChatController(args: Bundle) :
                     override fun onError(e: Throwable) {
                         Log.e(TAG, "An error occured while sending the chat message: " + e.message)
 
-                        messObj.setReadStatus(ReadStatus.FAILED)
+                        messObj.readStatus = ReadStatus.FAILED
                         adapter!!.updateAndMoveToStart(messObj)
 
                         if (e is HttpException) {
@@ -2801,11 +2800,12 @@ class ChatController(args: Bundle) :
     fun replyPrivately(message: IMessage?) {
         val apiVersion =
             ApiUtils.getConversationApiVersion(
-                            conversationUser, intArrayOf(
-                                ApiUtils.APIv4,
-                                1
-                            )
-                        )
+                conversationUser,
+                intArrayOf(
+                    ApiUtils.APIv4,
+                    1
+                )
+            )
         val retrofitBucket = ApiUtils.getRetrofitBucketForCreateRoom(
             apiVersion,
             conversationUser?.baseUrl,
@@ -2857,20 +2857,20 @@ class ChatController(args: Bundle) :
                                 )
                             }
 
-                                            override fun onError(e: Throwable) {
-                                                Log.e(TAG, e.message, e)
-                                            }
+                            override fun onError(e: Throwable) {
+                                Log.e(TAG, e.message, e)
+                            }
 
-                                            override fun onComplete() {// unused atm
+                            override fun onComplete() { // unused atm
                             }
                         })
                 }
 
-                                override fun onError(e: Throwable) {
-                                    Log.e(TAG, e.message, e)
-                                }
+                override fun onError(e: Throwable) {
+                    Log.e(TAG, e.message, e)
+                }
 
-                                override fun onComplete() {
+                override fun onComplete() {
                     // unused atm
                 }
             })
