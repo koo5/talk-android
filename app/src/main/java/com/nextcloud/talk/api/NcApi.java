@@ -1,5 +1,5 @@
 /*
- * Nextcloud Talk application
+ *   Nextcloud Talk application
  *
  * @author Mario Danic
  * @author Marcel Hibbe

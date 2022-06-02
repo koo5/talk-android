@@ -2,8 +2,10 @@
  * Nextcloud Talk application
  *
  * @author Mario Danic
+ * @author Marcel Hibbe
  * @author Tim Krüger
  * Copyright (C) 2021 Tim Krüger <t@timkrueger.me>
+ * Copyright (C) 2021-2022 Marcel Hibbe <dev@mhibbe.de>
  * Copyright (C) 2017-2018 Mario Danic <mario@lovelyhq.com>
  *
  * This program is free software: you can redistribute it and/or modify
