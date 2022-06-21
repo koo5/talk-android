@@ -41,11 +41,8 @@ import com.stfalcon.chatkit.commons.models.IUser
 import com.stfalcon.chatkit.commons.models.MessageContentType
 import kotlinx.android.parcel.Parcelize
 import java.security.MessageDigest
-import java.util.ArrayList
 import java.util.Arrays
 import java.util.Date
-import java.util.HashMap
-import java.util.LinkedHashMap
 
 @Parcelize
 @JsonObject
@@ -493,7 +490,8 @@ data class ChatMessage(
         CLEARED_CHAT,
         REACTION,
         REACTION_DELETED,
-        REACTION_REVOKED
+        REACTION_REVOKED,
+        POLL_VOTED
     }
 
     companion object {
