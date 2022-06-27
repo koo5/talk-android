@@ -59,6 +59,7 @@ import com.nextcloud.talk.adapters.ParticipantDisplayItem;
 import com.nextcloud.talk.adapters.ParticipantsAdapter;
 import com.nextcloud.talk.api.NcApi;
 import com.nextcloud.talk.application.NextcloudTalkApplication;
+import com.nextcloud.talk.data.user.model.User;
 import com.nextcloud.talk.databinding.CallActivityBinding;
 import com.nextcloud.talk.events.ConfigurationChangeEvent;
 import com.nextcloud.talk.events.MediaStreamEvent;
@@ -67,7 +68,6 @@ import com.nextcloud.talk.events.PeerConnectionEvent;
 import com.nextcloud.talk.events.SessionDescriptionSendEvent;
 import com.nextcloud.talk.events.WebSocketCommunicationEvent;
 import com.nextcloud.talk.models.ExternalSignalingServer;
-import com.nextcloud.talk.models.database.UserEntity;
 import com.nextcloud.talk.models.json.capabilities.CapabilitiesOverall;
 import com.nextcloud.talk.models.json.conversations.Conversation;
 import com.nextcloud.talk.models.json.conversations.RoomOverall;
@@ -225,7 +225,7 @@ public class CallActivity extends CallBaseActivity {
     private List<PeerConnection.IceServer> iceServers;
     private CameraEnumerator cameraEnumerator;
     private String roomToken;
-    private UserEntity conversationUser;
+    private User conversationUser;
     private String conversationName;
     private String callSession;
     private MediaStream localStream;
@@ -1173,7 +1173,7 @@ public class CallActivity extends CallBaseActivity {
 
     private void fetchSignalingSettings() {
         Log.d(TAG, "fetchSignalingSettings");
-        int apiVersion = ApiUtils.getSignalingApiVersion(conversationUser, new int[]{ApiUtils.APIv3, 2, 1});
+        int apiVersion = ApiUtils.getSignalingApiVersionNew(conversationUser, new int[]{ApiUtils.APIv3, 2, 1});
 
         ncApi.getSignalingSettings(credentials, ApiUtils.getUrlForSignalingSettings(apiVersion, baseUrl))
             .subscribeOn(Schedulers.io())
@@ -1225,11 +1225,7 @@ public class CallActivity extends CallBaseActivity {
                                 Log.e(TAG, "Failed to serialize external signaling server", exception);
                             }
                         } else {
-                            try {
-                                conversationUser.setExternalSignalingServer(LoganSquare.serialize(externalSignalingServer));
-                            } catch (IOException exception) {
-                                Log.e(TAG, "Failed to serialize external signaling server", exception);
-                            }
+                            conversationUser.setExternalSignalingServer(externalSignalingServer);
                         }
 
                         if (signalingSettingsOverall.getOcs().getSettings().getStunServers() != null) {
@@ -1412,14 +1408,14 @@ public class CallActivity extends CallBaseActivity {
                         ApplicationWideCurrentRoomHolder.getInstance().setDialing(false);
 
                         if (!TextUtils.isEmpty(roomToken)) {
-                            NotificationUtils.INSTANCE.cancelExistingNotificationsForRoom(getApplicationContext(),
-                                                                                          conversationUser,
-                                                                                          roomToken);
+                            NotificationUtils.INSTANCE.cancelExistingNotificationsForRoomNew(getApplicationContext(),
+                                                                                             conversationUser,
+                                                                                             roomToken);
                         }
 
                         if (!hasExternalSignalingServer) {
-                            int apiVersion = ApiUtils.getSignalingApiVersion(conversationUser,
-                                                                             new int[]{ApiUtils.APIv3, 2, 1});
+                            int apiVersion = ApiUtils.getSignalingApiVersionNew(conversationUser,
+                                                                                new int[]{ApiUtils.APIv3, 2, 1});
 
                             ncApi.pullSignalingMessages(credentials,
                                                         ApiUtils.getUrlForSignaling(apiVersion,
@@ -2214,7 +2210,7 @@ public class CallActivity extends CallBaseActivity {
             String stringToSend = stringBuilder.toString();
             strings.add(stringToSend);
 
-            int apiVersion = ApiUtils.getSignalingApiVersion(conversationUser, new int[]{ApiUtils.APIv3, 2, 1});
+            int apiVersion = ApiUtils.getSignalingApiVersionNew(conversationUser, new int[]{ApiUtils.APIv3, 2, 1});
 
             ncApi.sendSignalingMessages(credentials, ApiUtils.getUrlForSignaling(apiVersion, baseUrl, roomToken),
                                         strings.toString())
